@@ -1,6 +1,8 @@
 package com.lobemusonda.myfirstspringwebapp.todo;
 
 import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.validation.BindingResult;
@@ -16,7 +18,7 @@ import java.util.List;
 @SessionAttributes("name")
 public class TodoController {
 
-    private TodoService todoService;
+    private final TodoService todoService;
 
     public TodoController(TodoService todoService) {
         this.todoService = todoService;
@@ -24,7 +26,8 @@ public class TodoController {
 
     @RequestMapping("list-todos")
     public String listAllTodos(ModelMap model) {
-        List<Todo> todos = todoService.findByUsername("admin01");
+        String username = getLoggedInUsername();
+        List<Todo> todos = todoService.findByUsername(username);
         model.addAttribute("todos", todos);
 
         return "listTodos";
@@ -32,18 +35,18 @@ public class TodoController {
 
     @RequestMapping(value = "add-todo", method = RequestMethod.GET)
     public String showNewTodoPage(ModelMap model) {
-        String username = (String)model.get("name");
+        String username = getLoggedInUsername();
         Todo todo = new Todo(0, username, "", LocalDate.now().plusYears(1), false);
         model.put("todo", todo);
         return "todo";
     }
 
     @RequestMapping(value = "add-todo", method = RequestMethod.POST)
-    public String addNewTodoPage(ModelMap model, @Valid Todo todo, BindingResult result) {
+    public String addNewTodoPage(@Valid Todo todo, BindingResult result) {
         if (result.hasErrors()) {
             return "todo";
         }
-        todoService.add((String)model.get("name"), todo.getDescription(), todo.getTargetDate(), false);
+        todoService.add(getLoggedInUsername(), todo.getDescription(), todo.getTargetDate(), false);
         return "redirect:/list-todos";
     }
 
@@ -67,5 +70,10 @@ public class TodoController {
         }
         todoService.update(id, todo.getDescription(), todo.getTargetDate(), todo.isDone());
         return "redirect:/list-todos";
+    }
+
+    private static String getLoggedInUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getName();
     }
 }
