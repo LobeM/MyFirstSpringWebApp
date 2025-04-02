@@ -18,12 +18,9 @@ import java.util.List;
 @SessionAttributes("name")
 public class TodoControllerJpa {
 
-    private final TodoService todoService;
-
     private final TodoRepository todoRepository;
 
-    public TodoControllerJpa(TodoService todoService, TodoRepository todoRepository) {
-        this.todoService = todoService;
+    public TodoControllerJpa(TodoRepository todoRepository) {
         this.todoRepository = todoRepository;
     }
 
@@ -46,33 +43,37 @@ public class TodoControllerJpa {
     }
 
     @RequestMapping(value = "add-todo", method = RequestMethod.POST)
-    public String addNewTodoPage(@Valid Todo todo, BindingResult result) {
+    public String addNewTodo(@Valid Todo todo, BindingResult result) {
         if (result.hasErrors()) {
             return "todo";
         }
-        todoService.add(getLoggedInUsername(), todo.getDescription(), todo.getTargetDate(), false);
+        String username = getLoggedInUsername();
+        todo.setUsername(username);
+        todoRepository.save(todo);
         return "redirect:/list-todos";
     }
 
     @RequestMapping("delete-todo")
     public String deleteTodo(@RequestParam int id) {
-        todoService.delete(id);
+        todoRepository.deleteById(id);
         return "redirect:/list-todos";
     }
 
     @RequestMapping(value = "update-todo", method = RequestMethod.GET)
     public String showUpdateTodoPage(@RequestParam int id, ModelMap model) {
-        Todo todo = todoService.findById(id);
+        Todo todo = todoRepository.findById(id).get();
         model.addAttribute("todo", todo);
         return "todo";
     }
 
     @RequestMapping(value = "update-todo", method = RequestMethod.POST)
-    public String updateTodo(@RequestParam int id, @Valid Todo todo, BindingResult result) {
+    public String updateTodo(@Valid Todo todo, BindingResult result) {
         if (result.hasErrors()) {
             return "todo";
         }
-        todoService.update(id, todo.getDescription(), todo.getTargetDate(), todo.isDone());
+        String username = getLoggedInUsername();
+        todo.setUsername(username);
+        todoRepository.save(todo);
         return "redirect:/list-todos";
     }
 
